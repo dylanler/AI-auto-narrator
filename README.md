@@ -4,6 +4,11 @@
 
 Auto Narrator is a Python application designed to automate the process of generating voiceover narrations for videos. It utilizes a combination of video processing, text-to-speech technology, and machine learning models to produce narrations based on the content of the video and user-defined prompts.
 
+## Demo Video
+
+For a demonstration of the Auto Narrator application in action, watch our video here: [Auto Narrator Demo](https://www.youtube.com/watch?v=eP58jyDNor8)
+
+
 ## Prerequisites
 
 - Python 3.6 or later
