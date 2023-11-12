@@ -8,6 +8,7 @@ Auto Narrator is a Python application designed to automate the process of genera
 
 For a demonstration of the Auto Narrator application in action, watch our video here: [Auto Narrator Demo](https://www.youtube.com/watch?v=eP58jyDNor8)
 
+https://github.com/dylanler/AI-auto-narrator/assets/9219358/0ad03bf2-5905-43bd-97c0-91b849a5511f
 
 ## Prerequisites
 
