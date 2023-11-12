@@ -106,7 +106,7 @@ def text_to_speech(text, video_filename, voice_type="feminine-american", API_KEY
     else:
         
         MODEL_ID = "eleven_monolingual_v1"
-        voice_id = '21m00Tcm4TlvDq8ikWAM'
+        voice_id = 'jsCqWAovK2LkecY7zXl4'
         BASE_URL = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
         chunk = text
         data = {
