@@ -1,0 +1,5 @@
+openai
+gradio
+moviepy
+numpy
+opencv-python
