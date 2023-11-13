@@ -1,3 +1,55 @@
+import os
+OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
+ELEVEN_LABS_API = os.environ['ELEVEN_LABS_API']
+PASSWORD_AUTH = os.environ['PASSWORD_AUTH']
+
+from elevenlabs import clone, generate, play, save
+from elevenlabs import set_api_key
+set_api_key(ELEVEN_LABS_API)
+
+def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_audio, voice_prompt):
+    
+    if type(uploaded_file) == str:
+        video_filename = uploaded_file
+    else:
+        video_filename = uploaded_file.name
+    print("video", video_filename)
+        
+    base64Frames, video_filename, video_duration = video_to_frames(video_filename)
+
+    final_prompt = prompt_type(prompt_user, prompt_input, video_duration)
+    print(final_prompt)
+    text = frames_to_story(base64Frames, final_prompt, video_duration)
+    
+    if type(custom_audio) == str:
+        custom_audio_filename = custom_audio
+    else:
+        custom_audio_filename = custom_audio.name
+    print("custom audio", custom_audio_filename)
+
+    voice = clone(
+        name="Custom Voice",
+        description=f"{voice_prompt}", # Optional
+        files=[custom_audio_filename],
+    )
+
+    audio = generate(text=text, voice=voice)
+    save(audio, custom_audio_filename)
+    
+    audio_filename = custom_audio_filename
+
+    # Merge audio and video
+    output_video_filename = os.path.splitext(video_filename)[0] + '_output.mp4'
+    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename)
+    print("final", final_video_filename)
+
+    if type(uploaded_file) != str:
+        os.unlink(video_filename)
+        os.unlink(audio_filename)
+    
+    return final_video_filename, text
+
+
 import openai
 import requests
 import os
@@ -11,9 +63,7 @@ import tempfile
 import numpy as np
 import gradio as gr
 
-OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
-ELEVEN_LABS_API = os.environ['ELEVEN_LABS_API']
-PASSWORD_AUTH = os.environ['PASSWORD_AUTH']
+
 
 # Set your OpenAI API key here
 openai.api_key = OPENAI_API_KEY
@@ -200,7 +250,7 @@ def prompt_type(prompt_user, prompt_input, video_duration):
     
     if prompt_input == "how-to":
         prompt_input = prompt_how_to
-        mul_factor = 1.5
+        mul_factor = 1.6
     elif prompt_input == "documentary":
         prompt_input = prompt_documentary
         mul_factor = 2
@@ -346,7 +396,11 @@ with gr.Blocks() as demo:
             prompt_user = gr.Textbox(label="Enter your prompt")
             prompt_input = gr.Dropdown(['how-to', 'documentary', 'sports-commentator', 'custom-prompt'], label="Choose Your Narration")
             voice_type = gr.Dropdown(['masculine-american', 'masculine-british', 'feminine-american', 'feminine-british'], label="Choose Your Voice")
+            
             generate_btn = gr.Button(value="Generate")
+            voice_sample = gr.File(label="Use custom made voice.")
+            voice_prompt = gr.Textbox(label="Enter voice prompt.")
+            
             #render_btn = gr.Button(value="Render")
             #print_btn = gr.Button(value="Print")
         with gr.Column():
@@ -354,12 +408,13 @@ with gr.Blocks() as demo:
             output_file = gr.Video(label="Ouput video file.")
             output_voiceover = gr.Textbox(label="Generated Text")
             regenerate_btn = gr.Button(value="Re-generate")
+            custom_voice_btn = gr.Button(value="Use Custom Voice")
             #print_text = gr.Text(label="Printing")
 
    
     generate_btn.click(process_video, inputs=[video_input, prompt_user, prompt_input, voice_type], outputs=[output_file,output_voiceover])
     regenerate_btn.click(regenerate, inputs=[video_input, output_voiceover, voice_type], outputs=[output_file,output_voiceover])
-
+    custom_voice_btn.click(process_video_custom_voice, inputs=[video_input, prompt_user, prompt_input, voice_sample, voice_prompt], outputs=[output_file,output_voiceover])
 
     
 demo.launch(auth=("admin", PASSWORD_AUTH))
