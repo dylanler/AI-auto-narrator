@@ -98,7 +98,7 @@ def video_to_frames(video_file_path):
     return base64Frames, video_filename, video_duration
 
 
-def text_to_speech(text, video_filename, voice_type="feminine-american", API_KEY = ELEVEN_LABS_API):
+def text_to_speech(text, video_filename, voice_type, API_KEY = ELEVEN_LABS_API):
     
     CHUNK_SIZE = 2048
     voice_id = '21m00Tcm4TlvDq8ikWAM'
@@ -329,7 +329,7 @@ def merge_audio_video(video_filename, audio_filename, output_filename, original_
 
 # Rest of your imports and functions remain the same
 
-def process_video(uploaded_file, prompt_user, prompt_input, voice_type="feminine-american", model):
+def process_video(uploaded_file, prompt_user, prompt_input, voice_type, model):
     if type(uploaded_file) == str:
         video_filename = uploaded_file
     else:
@@ -358,7 +358,7 @@ def process_video(uploaded_file, prompt_user, prompt_input, voice_type="feminine
 
 # Rest of your imports and functions remain the same
 
-def regenerate(uploaded_file, edited_script, voice_type="feminine-american"):
+def regenerate(uploaded_file, edited_script, voice_type):
     
     if type(uploaded_file) == str:
         video_filename = uploaded_file
@@ -399,7 +399,11 @@ with gr.Blocks() as demo:
                 value='gpt-4-vision-preview',
                 label="OpenAI image recognition model"
             )
-            voice_type = gr.Dropdown(['masculine-american', 'masculine-british', 'feminine-american', 'feminine-british'], label="Choose Your Voice")
+            voice_type = gr.Dropdown(
+                choices=['masculine-american', 'masculine-british', 'feminine-american', 'feminine-british'],
+                value='feminine-american',
+                label="Choose Your Voice"
+            )
             
             generate_btn = gr.Button(value="Generate")
             voice_sample = gr.File(label="Use custom made voice.")
