@@ -10,7 +10,7 @@ client = ElevenLabs(
 )
 
 
-def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_audio, voice_prompt, image_model):
+def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_audio, voice_prompt, image_model, original_volume):
     
     if type(uploaded_file) == str:
         video_filename = uploaded_file
@@ -56,7 +56,7 @@ def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_
 
     # Merge audio and video
     output_video_filename = os.path.splitext(video_filename)[0] + '_output.mp4'
-    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename)
+    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename, original_volume)
     print("final", final_video_filename)
 
     if type(uploaded_file) != str:
@@ -279,7 +279,7 @@ def merge_audio_video(video_filename, audio_filename, output_filename, original_
 
 # Rest of your imports and functions remain the same
 
-def process_video(uploaded_file, prompt_user, prompt_input, voice_model, voice_type, image_model):
+def process_video(uploaded_file, prompt_user, prompt_input, voice_model, voice_type, image_model, original_volume):
     if type(uploaded_file) == str:
         video_filename = uploaded_file
     else:
@@ -293,11 +293,10 @@ def process_video(uploaded_file, prompt_user, prompt_input, voice_model, voice_t
     text = frames_to_story(base64Frames, final_prompt, video_duration, image_model)
 
     audio_filename = text_to_speech(text, video_filename, voice_model, voice_type)
-    print("audio", audio_filename)
 
     # Merge audio and video
     output_video_filename = os.path.splitext(video_filename)[0] + '_output.mp4'
-    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename)
+    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename, original_volume)
     print("final", final_video_filename)
 
     if type(uploaded_file) != str:
@@ -308,7 +307,7 @@ def process_video(uploaded_file, prompt_user, prompt_input, voice_model, voice_t
 
 # Rest of your imports and functions remain the same
 
-def regenerate(uploaded_file, edited_script, voice_model, voice_type):
+def regenerate(uploaded_file, edited_script, voice_model, voice_type, original_volume):
     
     if type(uploaded_file) == str:
         video_filename = uploaded_file
@@ -322,7 +321,7 @@ def regenerate(uploaded_file, edited_script, voice_model, voice_type):
 
     # Merge audio and video
     output_video_filename = os.path.splitext(video_filename)[0] + '_output.mp4'
-    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename)
+    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename, original_volume)
     print("final", final_video_filename)
 
     if type(uploaded_file) != str:
@@ -350,16 +349,24 @@ with gr.Blocks() as demo:
                 label="OpenAI image recognition model"
             )
             voice_model = gr.Dropdown(
-                choices=['eleven_turbo_v2_5', 'eleven_multilingual_v2', 'eleven_turbo_v2', 'eleven_monolingual_v1', 'eleven_multilingual_v1'],
+                choices=['eleven_turbo_v2_5', 'eleven_multilingual_v2'],
                 value='eleven_turbo_v2_5',
                 label="Choose Voice Model",
-                info="Recommended: Turbo v2.5 (0.5 credits per character - low latency), and Multilingual v2 (1 credit per character - better quality)"
+                info="Turbo v2.5 (0.5 credits per character - low latency), and Multilingual v2 (1 credit per character - better quality)"
             )
             voice_type = gr.Dropdown(
                 choices=['Alice', 'Aria', 'Bill', 'Brian', 'Callum', 'Charlie', 'Charlotte', 'Chris', 'Daniel', 'Eric', 'George', 'Jessica', 'Laura', 'Liam', 'Lily', 'Matilda', 'River', 'Roger', 'Sarah', 'Will'],
                 value='Charlie',
                 label="Choose Your Voice",
-                info="The default voices have fine tunings for our Turbo v2, Turbo v2.5, and Multilingual v2 models, which means they are optimized for use with these models."
+                info="The default voices have fine tunings for our Turbo v2, Turbo v2.5, and Multilingual v2 models"
+            )
+            original_volume = gr.Slider(
+                minimum=0.0,
+                maximum=1.0,
+                value=0.3,
+                step=0.01,
+                label="Original Audio Volume",
+                info="Set to 0 to completely remove original audio, 1 for full volume"
             )
             
             generate_btn = gr.Button(value="Generate")
@@ -377,9 +384,21 @@ with gr.Blocks() as demo:
             #print_text = gr.Text(label="Printing")
 
    
-    generate_btn.click(process_video, inputs=[video_input, prompt_user, prompt_input, voice_model, voice_type, image_model], outputs=[output_file,output_voiceover])
-    regenerate_btn.click(regenerate, inputs=[video_input, output_voiceover, voice_model, voice_type], outputs=[output_file,output_voiceover])
-    custom_voice_btn.click(process_video_custom_voice, inputs=[video_input, prompt_user, prompt_input, voice_sample, voice_prompt, image_model], outputs=[output_file,output_voiceover])
+    generate_btn.click(
+        process_video, 
+        inputs=[video_input, prompt_user, prompt_input, voice_model, voice_type, image_model, original_volume], 
+        outputs=[output_file, output_voiceover]
+    )
+    regenerate_btn.click(
+        regenerate, 
+        inputs=[video_input, output_voiceover, voice_model, voice_type, original_volume], 
+        outputs=[output_file, output_voiceover]
+    )
+    custom_voice_btn.click(
+        process_video_custom_voice, 
+        inputs=[video_input, prompt_user, prompt_input, voice_sample, voice_prompt, image_model, original_volume], 
+        outputs=[output_file, output_voiceover]
+    )
 
     
 if __name__ == "__main__":
