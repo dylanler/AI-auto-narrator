@@ -395,8 +395,8 @@ with gr.Blocks() as demo:
             prompt_user = gr.Textbox(label="Enter your prompt")
             prompt_input = gr.Dropdown(['how-to', 'documentary', 'sports-commentator', 'custom-prompt'], label="Choose Your Narration")
             openai_model = gr.Dropdown(
-                choices=['gpt-4-vision-preview', 'gpt-4v'], 
-                value='gpt-4-vision-preview',
+                choices=['gpt-4o-mini', 'gpt-4o'], 
+                value='gpt-4o-mini',
                 label="OpenAI image recognition model"
             )
             voice_type = gr.Dropdown(
