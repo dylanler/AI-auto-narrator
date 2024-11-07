@@ -3,7 +3,8 @@ OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 ELEVEN_LABS_API = os.environ['ELEVEN_LABS_API']
 PASSWORD_AUTH = os.environ['PASSWORD_AUTH']
 
-from elevenlabs import clone, generate, play, save
+from elevenlabs.api import Voice  # for newer versions
+from elevenlabs import generate, save, voices, clone
 from elevenlabs import set_api_key
 set_api_key(ELEVEN_LABS_API)
 
