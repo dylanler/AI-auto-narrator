@@ -3,3 +3,5 @@ gradio
 moviepy
 numpy
 opencv-python
+elevenlabs
+requests

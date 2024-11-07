@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env.local
+.env.*.local
+*.mp4
+*.mp3 

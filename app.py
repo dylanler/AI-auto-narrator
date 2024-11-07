@@ -417,4 +417,11 @@ with gr.Blocks() as demo:
     custom_voice_btn.click(process_video_custom_voice, inputs=[video_input, prompt_user, prompt_input, voice_sample, voice_prompt], outputs=[output_file,output_voiceover])
 
     
-demo.launch(auth=("admin", PASSWORD_AUTH))
+if __name__ == "__main__":
+    # Get password from environment variable, default to admin if not set
+    password = os.getenv("PASSWORD_AUTH", "admin")
+    demo.launch(
+        server_name="0.0.0.0",  # Required for Docker
+        server_port=7860,       # Standard Gradio port
+        auth=("admin", password) if password else None
+    )
