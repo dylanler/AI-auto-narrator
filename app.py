@@ -8,7 +8,7 @@ from elevenlabs import generate, save, voices, clone
 from elevenlabs import set_api_key
 set_api_key(ELEVEN_LABS_API)
 
-def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_audio, voice_prompt):
+def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_audio, voice_prompt, model):
     
     if type(uploaded_file) == str:
         video_filename = uploaded_file
@@ -20,7 +20,7 @@ def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_
 
     final_prompt = prompt_type(prompt_user, prompt_input, video_duration)
     print(final_prompt)
-    text = frames_to_story(base64Frames, final_prompt, video_duration)
+    text = frames_to_story(base64Frames, final_prompt, video_duration, model)
     
     if type(custom_audio) == str:
         custom_audio_filename = custom_audio
@@ -187,7 +187,7 @@ def text_to_speech(text, video_filename, voice_type="feminine-american", API_KEY
 
     return audio_filename
 
-def frames_to_story(base64Frames, prompt, video_duration):
+def frames_to_story(base64Frames, prompt, video_duration, model):
     
     fps = int(len(base64Frames) / video_duration)
     
@@ -212,10 +212,8 @@ def frames_to_story(base64Frames, prompt, video_duration):
         },
     ]
     params = {
-        "model": "gpt-4o-mini",
+        "model": model,
         "messages": PROMPT_MESSAGES,
-        #"api_key": OPENAI_API_KEY,
-        #"headers": {"Openai-Version": "2020-11-07"},
         "max_tokens": 500,
         
     }
@@ -331,7 +329,7 @@ def merge_audio_video(video_filename, audio_filename, output_filename, original_
 
 # Rest of your imports and functions remain the same
 
-def process_video(uploaded_file, prompt_user, prompt_input, voice_type="feminine-american"):
+def process_video(uploaded_file, prompt_user, prompt_input, voice_type="feminine-american", model):
     if type(uploaded_file) == str:
         video_filename = uploaded_file
     else:
@@ -342,7 +340,7 @@ def process_video(uploaded_file, prompt_user, prompt_input, voice_type="feminine
 
     final_prompt = prompt_type(prompt_user, prompt_input, video_duration)
     print(final_prompt)
-    text = frames_to_story(base64Frames, final_prompt, video_duration)
+    text = frames_to_story(base64Frames, final_prompt, video_duration, model)
 
     audio_filename = text_to_speech(text, video_filename, voice_type)
     print("audio", audio_filename)
@@ -396,6 +394,11 @@ with gr.Blocks() as demo:
             video_input = gr.Video(label="Upload Video")
             prompt_user = gr.Textbox(label="Enter your prompt")
             prompt_input = gr.Dropdown(['how-to', 'documentary', 'sports-commentator', 'custom-prompt'], label="Choose Your Narration")
+            openai_model = gr.Dropdown(
+                choices=['gpt-4-vision-preview', 'gpt-4v'], 
+                value='gpt-4-vision-preview',
+                label="OpenAI image recognition model"
+            )
             voice_type = gr.Dropdown(['masculine-american', 'masculine-british', 'feminine-american', 'feminine-british'], label="Choose Your Voice")
             
             generate_btn = gr.Button(value="Generate")
@@ -413,9 +416,9 @@ with gr.Blocks() as demo:
             #print_text = gr.Text(label="Printing")
 
    
-    generate_btn.click(process_video, inputs=[video_input, prompt_user, prompt_input, voice_type], outputs=[output_file,output_voiceover])
+    generate_btn.click(process_video, inputs=[video_input, prompt_user, prompt_input, voice_type, openai_model], outputs=[output_file,output_voiceover])
     regenerate_btn.click(regenerate, inputs=[video_input, output_voiceover, voice_type], outputs=[output_file,output_voiceover])
-    custom_voice_btn.click(process_video_custom_voice, inputs=[video_input, prompt_user, prompt_input, voice_sample, voice_prompt], outputs=[output_file,output_voiceover])
+    custom_voice_btn.click(process_video_custom_voice, inputs=[video_input, prompt_user, prompt_input, voice_sample, voice_prompt, openai_model], outputs=[output_file,output_voiceover])
 
     
 if __name__ == "__main__":
