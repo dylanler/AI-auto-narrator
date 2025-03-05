@@ -83,3 +83,40 @@ For any queries or issues, please open an issue on the GitHub repository page.
 ---
 
 *This README provides a comprehensive guide to setting up and using the Auto Narrator application. Adjust the instructions based on the specific requirements and configurations of your project.*
+
+# Docker Deployment
+
+## Running with Docker Compose
+
+1. **Set up environment variables:**
+   Create a `.env` file in the project root with your API keys:
+   ```
+   OPENAI_API_KEY=your_openai_key_here
+   ELEVEN_LABS_API=your_eleven_labs_key_here
+   PASSWORD_AUTH=your_password_here
+   ```
+
+2. **Start the application:**
+   ```bash
+   docker-compose up
+   ```
+
+3. **Access the application:**
+   Once running, access the application at `http://localhost:7860`
+
+4. **Stop the application:**
+   ```bash
+   docker-compose down
+   ```
+
+## Environment Variables
+
+The following environment variables are required:
+- `OPENAI_API_KEY`: Your OpenAI API key
+- `ELEVEN_LABS_API`: Your Eleven Labs API key
+- `PASSWORD_AUTH`: Password for the Gradio interface (optional)
+
+You can set these in the `.env` file or pass them directly when running docker-compose:
+```bash
+OPENAI_API_KEY=key1 ELEVEN_LABS_API=key2 PASSWORD_AUTH=pass docker-compose up
+```

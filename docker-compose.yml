@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  auto-narrator:
+    image: python:3.10-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "7860:7860"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ELEVEN_LABS_API=${ELEVEN_LABS_API}
+      - PASSWORD_AUTH=${PASSWORD_AUTH}
+      - GRADIO_SERVER_NAME=0.0.0.0
+    command: >
+      bash -c "apt-get update && 
+      apt-get install -y libgl1-mesa-glx libglib2.0-0 &&
+      pip install --no-cache-dir -r requirements.txt &&
+      python app.py" 

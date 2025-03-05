@@ -3,11 +3,14 @@ OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
 ELEVEN_LABS_API = os.environ['ELEVEN_LABS_API']
 PASSWORD_AUTH = os.environ['PASSWORD_AUTH']
 
-from elevenlabs import clone, generate, play, save
-from elevenlabs import set_api_key
-set_api_key(ELEVEN_LABS_API)
+from elevenlabs.client import ElevenLabs
 
-def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_audio, voice_prompt):
+client = ElevenLabs(
+  api_key=ELEVEN_LABS_API,
+)
+
+
+def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_audio, voice_prompt, image_model, original_volume):
     
     if type(uploaded_file) == str:
         video_filename = uploaded_file
@@ -19,7 +22,7 @@ def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_
 
     final_prompt = prompt_type(prompt_user, prompt_input, video_duration)
     print(final_prompt)
-    text = frames_to_story(base64Frames, final_prompt, video_duration)
+    text = frames_to_story(base64Frames, final_prompt, video_duration, image_model)
     
     if type(custom_audio) == str:
         custom_audio_filename = custom_audio
@@ -27,20 +30,33 @@ def process_video_custom_voice(uploaded_file, prompt_user, prompt_input, custom_
         custom_audio_filename = custom_audio.name
     print("custom audio", custom_audio_filename)
 
-    voice = clone(
-        name="Custom Voice",
-        description=f"{voice_prompt}", # Optional
-        files=[custom_audio_filename],
-    )
+    try:
+        voice = client.clone(
+            name="Custom Voice",
+            description=voice_prompt,
+            files=[custom_audio_filename]
+        )
 
-    audio = generate(text=text, voice=voice)
-    save(audio, custom_audio_filename)
+        # Generate audio with the cloned voice
+        audio_generator = client.generate(
+            text=text,
+            voice=voice
+        )
+        
+        # Convert generator to bytes
+        audio_bytes = b"".join(audio_generator)
+        
+        with open(custom_audio_filename, 'wb') as f:
+            f.write(audio_bytes)
+    except Exception as e:
+        print(f"Error with voice cloning: {str(e)}")
+        raise
     
     audio_filename = custom_audio_filename
 
     # Merge audio and video
     output_video_filename = os.path.splitext(video_filename)[0] + '_output.mp4'
-    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename)
+    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename, original_volume)
     print("final", final_video_filename)
 
     if type(uploaded_file) != str:
@@ -97,96 +113,31 @@ def video_to_frames(video_file_path):
     return base64Frames, video_filename, video_duration
 
 
-def text_to_speech(text, video_filename, voice_type="feminine-american", API_KEY = ELEVEN_LABS_API):
-    
-    CHUNK_SIZE = 2048
-    voice_id = '21m00Tcm4TlvDq8ikWAM'
-    BASE_URL = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-    
-    
-    headers = {
-        "Accept": "audio/mpeg",
-        "Content-Type": "application/json",
-        "xi-api-key": API_KEY
-    }
-    
-    if voice_type == "masculine-american":
+def text_to_speech(text, video_filename, voice_model, voice_type, API_KEY=ELEVEN_LABS_API):
+    try:
+        # Generate audio
+        audio_generator = client.generate(
+            text=text,
+            voice=voice_type,
+            model=voice_model
+        )
         
-        MODEL_ID = "eleven_monolingual_v1"
-        voice_id = 'VR6AewLTigWG4xSOukaG'
-        BASE_URL = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-        chunk = text
-        data = {
-            "text": chunk,
-            "model_id": MODEL_ID,
-            "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.5
-            }
-        }
-        
-    elif voice_type == "feminine-british":
-        
-        MODEL_ID = "eleven_monolingual_v1"
-        voice_id = 'ThT5KcBeYPX3keUQqHPh'
-        BASE_URL = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-        chunk = text
-        data = {
-            "text": chunk,
-            "model_id": MODEL_ID,
-            "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.5
-            }
-        }
-    elif voice_type == "masculine-british":
-        
-        MODEL_ID = "eleven_monolingual_v1"
-        voice_id = 'Yko7PKHZNXotIFUBG7I9'
-        BASE_URL = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-        chunk = text
-        data = {
-            "text": chunk,
-            "model_id": MODEL_ID,
-            "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.5
-            }
-        }
-    else:
-        
-        MODEL_ID = "eleven_monolingual_v1"
-        voice_id = 'jsCqWAovK2LkecY7zXl4'
-        BASE_URL = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-        chunk = text
-        data = {
-            "text": chunk,
-            "model_id": MODEL_ID,
-            "voice_settings": {
-                "stability": 0.3,
-                "similarity_boost": 0.5
-            }
-        }
+        # Convert generator to bytes
+        audio_bytes = b"".join(audio_generator)
 
-    # Send the POST request to the API
-    response = requests.post(BASE_URL, json=data, headers=headers)
-
-    # Check if the response is OK
-    if response.status_code == 200:
-        # Write the chunk to an mp3 file in the directory
-        # Save audio to a specified file
+        # Save to file
         audio_filename = 'testing_file.mp3'
         with open(audio_filename, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=1024 * 1024):
-                file.write(chunk)
-
+            file.write(audio_bytes)
+        
         print(f'Saved {audio_filename}')
-    else:
-        print(f'Error: Received response code {response.status_code}')
+        return audio_filename
+    except Exception as e:
+        print(f"Error generating audio: {str(e)}")
+        raise
 
-    return audio_filename
 
-def frames_to_story(base64Frames, prompt, video_duration):
+def frames_to_story(base64Frames, prompt, video_duration, image_model):
     
     fps = int(len(base64Frames) / video_duration)
     
@@ -211,10 +162,8 @@ def frames_to_story(base64Frames, prompt, video_duration):
         },
     ]
     params = {
-        "model": "gpt-4-vision-preview",
+        "model": image_model,
         "messages": PROMPT_MESSAGES,
-        #"api_key": OPENAI_API_KEY,
-        #"headers": {"Openai-Version": "2020-11-07"},
         "max_tokens": 500,
         
     }
@@ -330,7 +279,7 @@ def merge_audio_video(video_filename, audio_filename, output_filename, original_
 
 # Rest of your imports and functions remain the same
 
-def process_video(uploaded_file, prompt_user, prompt_input, voice_type="feminine-american"):
+def process_video(uploaded_file, prompt_user, prompt_input, voice_model, voice_type, image_model, original_volume):
     if type(uploaded_file) == str:
         video_filename = uploaded_file
     else:
@@ -341,14 +290,13 @@ def process_video(uploaded_file, prompt_user, prompt_input, voice_type="feminine
 
     final_prompt = prompt_type(prompt_user, prompt_input, video_duration)
     print(final_prompt)
-    text = frames_to_story(base64Frames, final_prompt, video_duration)
+    text = frames_to_story(base64Frames, final_prompt, video_duration, image_model)
 
-    audio_filename = text_to_speech(text, video_filename, voice_type)
-    print("audio", audio_filename)
+    audio_filename = text_to_speech(text, video_filename, voice_model, voice_type)
 
     # Merge audio and video
     output_video_filename = os.path.splitext(video_filename)[0] + '_output.mp4'
-    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename)
+    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename, original_volume)
     print("final", final_video_filename)
 
     if type(uploaded_file) != str:
@@ -359,7 +307,7 @@ def process_video(uploaded_file, prompt_user, prompt_input, voice_type="feminine
 
 # Rest of your imports and functions remain the same
 
-def regenerate(uploaded_file, edited_script, voice_type="feminine-american"):
+def regenerate(uploaded_file, edited_script, voice_model, voice_type, original_volume):
     
     if type(uploaded_file) == str:
         video_filename = uploaded_file
@@ -368,12 +316,12 @@ def regenerate(uploaded_file, edited_script, voice_type="feminine-american"):
     print("video", video_filename)
     
     # Generate audio from text
-    audio_filename = text_to_speech(edited_script, video_filename, voice_type)
+    audio_filename = text_to_speech(edited_script, video_filename, voice_model, voice_type)
     print("audio", audio_filename)
 
     # Merge audio and video
     output_video_filename = os.path.splitext(video_filename)[0] + '_output.mp4'
-    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename)
+    final_video_filename = merge_audio_video(video_filename, audio_filename, output_video_filename, original_volume)
     print("final", final_video_filename)
 
     if type(uploaded_file) != str:
@@ -395,7 +343,31 @@ with gr.Blocks() as demo:
             video_input = gr.Video(label="Upload Video")
             prompt_user = gr.Textbox(label="Enter your prompt")
             prompt_input = gr.Dropdown(['how-to', 'documentary', 'sports-commentator', 'custom-prompt'], label="Choose Your Narration")
-            voice_type = gr.Dropdown(['masculine-american', 'masculine-british', 'feminine-american', 'feminine-british'], label="Choose Your Voice")
+            image_model = gr.Dropdown(
+                choices=['gpt-4o-mini', 'gpt-4o'], 
+                value='gpt-4o-mini',
+                label="OpenAI image recognition model"
+            )
+            voice_model = gr.Dropdown(
+                choices=['eleven_turbo_v2_5', 'eleven_multilingual_v2'],
+                value='eleven_turbo_v2_5',
+                label="Choose Voice Model",
+                info="Turbo v2.5 (0.5 credits per character - low latency), and Multilingual v2 (1 credit per character - better quality)"
+            )
+            voice_type = gr.Dropdown(
+                choices=['Alice', 'Aria', 'Bill', 'Brian', 'Callum', 'Charlie', 'Charlotte', 'Chris', 'Daniel', 'Eric', 'George', 'Jessica', 'Laura', 'Liam', 'Lily', 'Matilda', 'River', 'Roger', 'Sarah', 'Will'],
+                value='Charlie',
+                label="Choose Your Voice",
+                info="The default voices have fine tunings for our Turbo v2, Turbo v2.5, and Multilingual v2 models"
+            )
+            original_volume = gr.Slider(
+                minimum=0.0,
+                maximum=1.0,
+                value=0.3,
+                step=0.01,
+                label="Original Audio Volume",
+                info="Set to 0 to completely remove original audio, 1 for full volume"
+            )
             
             generate_btn = gr.Button(value="Generate")
             voice_sample = gr.File(label="Use custom made voice.")
@@ -412,9 +384,28 @@ with gr.Blocks() as demo:
             #print_text = gr.Text(label="Printing")
 
    
-    generate_btn.click(process_video, inputs=[video_input, prompt_user, prompt_input, voice_type], outputs=[output_file,output_voiceover])
-    regenerate_btn.click(regenerate, inputs=[video_input, output_voiceover, voice_type], outputs=[output_file,output_voiceover])
-    custom_voice_btn.click(process_video_custom_voice, inputs=[video_input, prompt_user, prompt_input, voice_sample, voice_prompt], outputs=[output_file,output_voiceover])
+    generate_btn.click(
+        process_video, 
+        inputs=[video_input, prompt_user, prompt_input, voice_model, voice_type, image_model, original_volume], 
+        outputs=[output_file, output_voiceover]
+    )
+    regenerate_btn.click(
+        regenerate, 
+        inputs=[video_input, output_voiceover, voice_model, voice_type, original_volume], 
+        outputs=[output_file, output_voiceover]
+    )
+    custom_voice_btn.click(
+        process_video_custom_voice, 
+        inputs=[video_input, prompt_user, prompt_input, voice_sample, voice_prompt, image_model, original_volume], 
+        outputs=[output_file, output_voiceover]
+    )
 
     
-demo.launch(auth=("admin", PASSWORD_AUTH))
+if __name__ == "__main__":
+    # Get password from environment variable, default to admin if not set
+    password = os.getenv("PASSWORD_AUTH", "admin")
+    demo.launch(
+        server_name="0.0.0.0",  # Required for Docker
+        server_port=7860,       # Standard Gradio port
+        auth=("admin", password) if password else None
+    )
